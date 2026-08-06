@@ -7,44 +7,94 @@ packer {
   }
 }
 
+# This block defines a "source" using the QEMU builder plugin.
+# We are naming this specific configuration "almalinux9".
 source "qemu" "almalinux9" {
+  
+  # ---------------------------------------------------------
+  # 1. Hypervisor and OS Image Setup
+  # ---------------------------------------------------------
+  # Specifies the exact path to the QEMU/KVM executable on the host machine.
   qemu_binary       = "/usr/libexec/qemu-kvm"
+  
+  # The URL to download the minimal AlmaLinux 9.4 ISO.
   iso_url           = "https://vault.almalinux.org/9.4/isos/x86_64/AlmaLinux-9.4-x86_64-minimal.iso"
+  
+  # The cryptographic hash used to verify the ISO downloaded correctly and hasn't been tampered with.
   iso_checksum      = "sha256:20123bb9f8319143e792b906137236bdcb0d10b023c36626ca2d8e9f62144eb9"
-  
-  # Output to your dedicated Pair A storage pool
+
+  # ---------------------------------------------------------
+  # 2. Build Environment and Output
+  # ---------------------------------------------------------
+  # Tell Packer not to open a UI/VNC window (runs the build silently in the background).
+  headless          = true
+
+  # Output to your dedicated Pair A storage pool. This is where the final image is saved.
   output_directory  = "/home/pool_a/packer_output"
+  
+  # The filename of the final Golden Image.
   vm_name           = "almalinux9-golden.qcow2"
-  
-  # Disk and formatting
+
+  # ---------------------------------------------------------
+  # 3. Virtual Hardware Configuration
+  # ---------------------------------------------------------
+  # Sets the virtual hard drive maximum capacity to 20 Gigabytes.
   disk_size         = "20G"
+  
+  # Uses the qcow2 format (thin-provisioned, so it only takes up used space, not the full 20G).
   format            = "qcow2"
-  
-  # Memory and CPU for the build process
+
+  # Memory (RAM) in Megabytes allocated to the VM just for the build process (2GB).
   memory            = 2048
+  
+  # Number of CPU cores allocated to the VM during the build.
   cpus              = 2
-  
-  # UEFI Boot configuration
+
+  # ---------------------------------------------------------
+  # 4. UEFI Boot Configuration
+  # ---------------------------------------------------------
+  # Emulates a modern Q35 chipset motherboard, required for PCIe and modern UEFI support.
   machine_type      = "q35"
+  
+  # Points to the host system's UEFI firmware file so the VM can boot in UEFI mode instead of BIOS.
   firmware          = "/usr/share/edk2/ovmf/OVMF_CODE.fd"
-  
-  # Serve the kickstart file
+
+  # ---------------------------------------------------------
+  # 5. Kickstart & Automation Injection
+  # ---------------------------------------------------------
+  # Packer creates a temporary HTTP server pointing to the current directory (".") 
+  # so the VM can download the kickstart.cfg file over the virtual network.
   http_directory    = "."
-  
-  # Interrupt the boot process to inject the kickstart URL
+
+  # Gives the VM 10 seconds to boot up and reach the installation menu before typing.
   boot_wait         = "10s"
+  
+  # Simulates a human typing on a keyboard to intercept the boot menu and pass the kickstart URL.
+  # {{ .HTTPIP }} and {{ .HTTPPort }} are dynamically replaced by Packer's temporary server details.
   boot_command      = [
     "<up><wait><tab>",
     " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg<enter>"
   ]
-  
-  # How Packer knows the install is finished
+
+  # ---------------------------------------------------------
+  # 6. Completion and Cleanup
+  # ---------------------------------------------------------
+  # The user account Packer will use to SSH into the machine to verify the install is done.
+  # (This matches the user you created in your kickstart.cfg).
   ssh_username      = "ansible"
   ssh_password      = "ansible"
+  
+  # How long Packer will wait for the OS to install and SSH to become available before giving up.
   ssh_timeout       = "30m"
+  
+  # The command Packer runs over SSH to safely power off the VM so it can finalize the image.
   shutdown_command  = "echo 'ansible' | sudo -S shutdown -P now"
 }
 
+# ---------------------------------------------------------
+# 7. Build Execution
+# ---------------------------------------------------------
+# This block tells Packer which sources to actually build when you run `packer build`
 build {
   sources = ["source.qemu.almalinux9"]
 }

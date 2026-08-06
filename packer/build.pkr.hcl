@@ -1,4 +1,4 @@
-packer {
+	packer {
   required_plugins {
     qemu = {
       version = "~> 1.0"
@@ -23,6 +23,9 @@ source "qemu" "almalinux9" {
   # The cryptographic hash used to verify the ISO downloaded correctly and hasn't been tampered with.
   iso_checksum      = "sha256:20123bb9f8319143e792b906137236bdcb0d10b023c36626ca2d8e9f62144eb9"
 
+  # Pass the host CPU features directly to the VM to satisfy x86-64-v2 requirements
+  accelerator       = "kvm"
+  cpu_model         = "host"
   # ---------------------------------------------------------
   # 2. Build Environment and Output
   # ---------------------------------------------------------
@@ -53,11 +56,12 @@ source "qemu" "almalinux9" {
   # ---------------------------------------------------------
   # 4. UEFI Boot Configuration
   # ---------------------------------------------------------
-  # Emulates a modern Q35 chipset motherboard, required for PCIe and modern UEFI support.
   machine_type      = "q35"
   
-  # Points to the host system's UEFI firmware file so the VM can boot in UEFI mode instead of BIOS.
-  firmware          = "/usr/share/edk2/ovmf/OVMF_CODE.fd"
+  # Tell Packer to use modern UEFI pflash drives instead of legacy -bios
+  efi_boot          = true
+  efi_firmware_code = "/usr/share/edk2/ovmf/OVMF_CODE.fd"
+  efi_firmware_vars = "/usr/share/edk2/ovmf/OVMF_VARS.fd"
 
   # ---------------------------------------------------------
   # 5. Kickstart & Automation Injection
@@ -65,15 +69,18 @@ source "qemu" "almalinux9" {
   # Packer creates a temporary HTTP server pointing to the current directory (".") 
   # so the VM can download the kickstart.cfg file over the virtual network.
   http_directory    = "."
-
   # Gives the VM 10 seconds to boot up and reach the installation menu before typing.
   boot_wait         = "10s"
   
   # Simulates a human typing on a keyboard to intercept the boot menu and pass the kickstart URL.
   # {{ .HTTPIP }} and {{ .HTTPPort }} are dynamically replaced by Packer's temporary server details.
-  boot_command      = [
-    "<up><wait><tab>",
-    " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg<enter>"
+  # Interrupt the boot process, edit the boot parameters, and inject the kickstart URL
+  boot_command = [
+    "<up><wait>",
+    "e",
+    "<down><down><end>",
+    " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg",
+    "<f10>"
   ]
 
   # ---------------------------------------------------------
@@ -85,7 +92,7 @@ source "qemu" "almalinux9" {
   ssh_password      = "ansible"
   
   # How long Packer will wait for the OS to install and SSH to become available before giving up.
-  ssh_timeout       = "30m"
+  ssh_timeout       = "60m"
   
   # The command Packer runs over SSH to safely power off the VM so it can finalize the image.
   shutdown_command  = "echo 'ansible' | sudo -S shutdown -P now"

@@ -15,7 +15,7 @@ provider "libvirt" {
 resource "libvirt_pool" "pool_a" {
   name = "pool_a"
   type = "dir"
-  path = "/home/pool_a/libvirt_images"
+  path = "/home/pool_a"
 }
 
 # Base OS image volume

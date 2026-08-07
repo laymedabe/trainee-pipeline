@@ -1,0 +1,26 @@
+---
+# Pair A Tailoring Variables
+# Sourced from RHEL9-CIS 2.3.0 defaults/main.yml
+
+# 1. Login Banner
+# (Control 1.7.2 / 1.7.3)
+rhel9cis_warning_banner: "AUTHORIZED ACCESS ONLY"
+
+# 2. SSHD Timeout
+# (Control 5.1.9)
+rhel9cis_sshd_clientaliveinterval: 300
+rhel9cis_sshd_clientalivecountmax: 0
+
+# 3. Use rsyslog for logging
+# (Control 6.2.1.x and 6.2.3.x) 
+# Options are 'journald' or 'rsyslog'. 
+rhel9cis_syslog: rsyslog
+
+# 4. No account lockouts on failed password attempts (Safety / Security)
+# (Controls 5.3.3.1.1 through 5.3.3.1.3)
+# Setting deny to 0 disables the faillock lockout feature.
+rhel9cis_pam_faillock_deny: 0
+# To explicitly tell the role not to enforce the lockout rules, we can also toggle them off:
+rhel9cis_rule_5_3_3_1_1: false
+rhel9cis_rule_5_3_3_1_2: false
+rhel9cis_rule_5_3_3_1_3: false

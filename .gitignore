@@ -11,3 +11,5 @@ crash.log
 
 # Ignore Ansible sensitive files
 ansible/vault_password.txt
+ansible/roles/
+

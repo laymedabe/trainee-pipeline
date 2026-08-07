@@ -1,0 +1,4 @@
+---
+# Put sensitive variables here (like passwords, keys, or sensitive configs)
+# This file should be encrypted using `ansible-vault encrypt vault.yml`
+vault_placeholder_secret: "super_secret_value"

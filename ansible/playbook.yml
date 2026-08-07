@@ -3,6 +3,13 @@
   hosts: all
   become: yes
 
+  vars:
+    # ---------------------------------------------------------
+    # Variable Precedence Demonstration (Play Vars)
+    # This overrides group_vars/all/vars.yml (Level 2 of 3)
+    # ---------------------------------------------------------
+    rhel9cis_warning_banner: "PLAYBOOK LEVEL ACCESS BANNER"
+
   pre_tasks:
     - name: Ensure xfsprogs is installed
       package:

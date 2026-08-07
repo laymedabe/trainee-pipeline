@@ -72,10 +72,8 @@ resource "libvirt_domain" "pa_node" {
 
   qemu_agent = true
 
-  cloudinit = libvirt_cloudinit_disk.commoninit[count.index].id
-
   # UEFI boot settings
-  machine = "q35"
+  machine  = "q35"
   firmware = "/usr/share/edk2/ovmf/OVMF_CODE.fd"
   nvram {
     file     = "/var/lib/libvirt/qemu/nvram/${var.hostname_prefix}-${count.index + 1}_VARS.fd"
@@ -102,9 +100,41 @@ resource "libvirt_domain" "pa_node" {
     volume_id = libvirt_volume.data_disk_2[count.index].id
   }
 
+  # Cloud-Init disk (attached as virtio file instead of IDE CD-ROM for q35 compatibility)
+  disk {
+    file = "/home/pool_a/${libvirt_cloudinit_disk.commoninit[count.index].name}"
+  }
+
+  # Use VNC instead of SPICE (qemu-kvm minimal doesn't include SPICE)
+  graphics {
+    type        = "vnc"
+    listen_type = "address"
+    autoport    = true
+  }
+
   console {
     type        = "pty"
     target_port = "0"
     target_type = "serial"
+  }
+
+  # WORKAROUND: The libvirt provider's 'cloudinit' parameter hardcodes an IDE CD-ROM.
+  # The 'q35' machine type does not support IDE. This XSLT transform intercepts the XML
+  # before it is sent to KVM and changes the cloud-init CD-ROM bus from IDE to SATA.
+  xml {
+    xslt = <<EOF
+<?xml version="1.0" ?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:output omit-xml-declaration="yes" indent="yes"/>
+  <xsl:template match="node()|@*">
+    <xsl:copy>
+      <xsl:apply-templates select="node()|@*"/>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="target[@bus='ide']">
+    <target dev="sda" bus="sata"/>
+  </xsl:template>
+</xsl:stylesheet>
+EOF
   }
 }

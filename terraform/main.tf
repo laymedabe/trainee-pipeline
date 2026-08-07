@@ -72,6 +72,12 @@ resource "libvirt_domain" "pa_node" {
 
   qemu_agent = true
 
+  # AlmaLinux 9 requires x86-64-v2 CPU features.
+  # We must pass the host CPU through instead of the default qemu64.
+  cpu {
+    mode = "host-passthrough"
+  }
+
   # UEFI boot settings
   machine  = "q35"
   firmware = "/usr/share/edk2/ovmf/OVMF_CODE.fd"

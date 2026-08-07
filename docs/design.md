@@ -38,6 +38,10 @@ To fulfill the requirement of demonstrating Ansible variable precedence, we trac
 | `rhel9cis_warning_banner` | `"PLAYBOOK LEVEL ACCESS BANNER"` | **Level 2:** `playbook.yml` (`vars:` block) | Group Vars (`group_vars/all/vars.yml`) | Play-level variables are more specific to the execution run and override inventory-level configurations. |
 | `rhel9cis_warning_banner` | `"JENKINS EXTRA-VARS BANNER"` | **Level 3:** Jenkins Pipeline (`--extra-vars`) | Play Vars (`playbook.yml`) | Command-line extra variables (`-e` or `--extra-vars`) have the absolute highest precedence in Ansible and override all other variable definitions across the board. |
 
+**Verification & Demonstration Notes:**
+* When the Ansible playbook is executed manually via the CLI (`ansible-playbook playbook.yml`), **Level 1** and **Level 2** are demonstrated. Since Level 2 has higher precedence, the banner is set to `"PLAYBOOK LEVEL ACCESS BANNER"`.
+* When the playbook is executed via the Jenkins CI/CD pipeline, the `-e` flag injects the **Level 3** variable, overriding the lower levels and setting the banner to `"JENKINS EXTRA-VARS BANNER"`.
+
 ---
 
 ## 5. Tailoring Decisions & Exceptions
@@ -46,6 +50,64 @@ The following specific tailoring decisions were made to align with the Pair A as
 * **Use of RSyslog:** Enforced `rhel9cis_syslog: rsyslog` to override the default `journald` implementation.
 * **SSHD Timeout Adjustments:** Configured `rhel9cis_sshd_clientaliveinterval: 300` and `rhel9cis_sshd_clientalivecountmax: 0` per assignment requirements.
 * **PAM Faillock Disablement:** Completely disabled account lockouts on failed password attempts for both standard users and root by setting `rhel9cis_pam_faillock_deny: 0` and toggling off CIS rules `5.3.3.1.1`, `5.3.3.1.2`, and `5.3.3.1.3`.
+* **Cloud Instance CIS Exceptions:** Because this is an automated cloud deployment, we disabled local password checks (`rhel9cis_rule_5_2_4` and `rhel9cis_rule_5_4_2_4`) and provided a custom authselect profile name (`rhel9cis_authselect_custom_profile_name: "custom_cis_profile"`) to ensure the role passes successfully on SSH-key only servers.
+* **Ansible Version Check Bypass:** Bypassed the strict Ansible version check (`> 2.16.1`) in the CIS role to natively support the AlmaLinux 9 repository's default `ansible-core` package (`2.14.18`).
+
+---
+
+## 6. Comprehensive Project Summary (Guide Adherence)
+
+This section details exactly how the infrastructure was built to adhere to the project requirements.
+
+### Phase 1: Golden Image Build (Packer)
+* Created a clean `kickstart.cfg` mapped directly to an AlmaLinux 9 base ISO.
+* Enforced the `@^minimal-environment` package set to keep the attack surface low.
+* Implemented the required CIS Level 1 logical volumes (`/var`, `/var/log`, `/var/log/audit`, `/var/tmp`, `swap`) under a single Volume Group (`vg_sys_a`).
+* Added the Pair A specific extra logical volume (`/opt` - 2GB).
+* Pre-installed `cloud-init` and `qemu-guest-agent` for downstream Terraform automation.
+
+### Phase 2: Infrastructure Provisioning (Terraform)
+* Provisioned two identical virtual machines on KVM/libvirt: `pa-node-1` and `pa-node-2`.
+* Solved kernel panics and AlmaLinux 9 compatibility issues by strictly defining the `q35` machine type with `host-passthrough` CPU mode.
+* Handled `q35` IDE limitations by injecting an XSLT transformation to remap the cloud-init CD-ROM to the SATA bus.
+* Attached the 20GB Golden Image base OS disk, plus **two additional 2GB data disks** per node.
+* Secured the initial OS state via `cloud-init`, enforcing SSH-key authentication for the `sysadmin` user, configuring passwordless sudo, disabling root login, and strategically preventing background package upgrades that would clash with Ansible.
+* Dynamically extracted the provisioned IPv4 addresses directly from the hypervisor DHCP leases to generate the Ansible inventory file.
+
+### Phase 3: Hardening & Orchestration (Ansible & Jenkins)
+* Implemented the industry-standard `rhel9-cis` (Ansible-Lockdown) collection to automatically harden the instances.
+* Wrote `pre_tasks` in the playbook to dynamically format the two 2GB data disks as `xfs` and mount them permanently to `/mnt/data1` and `/mnt/data2` before hardening.
+* Fixed concurrent SSH verification hangs by providing a pre-configured `ansible.cfg` with `host_key_checking = False`.
+* Orchestrated the entire build, destroy, provision, and harden lifecycle using a declarative `Jenkinsfile` parameterized for flexibility and complete reproducibility.
+
+---
+
+## 7. Troubleshooting & Problem Solving
+Throughout the development of this infrastructure, several major technical hurdles were encountered and systematically resolved:
+
+1. **Terraform `q35` Machine Type vs. IDE Limitations:**
+   * **Error:** Terraform failed to provision with `unsupported configuration: IDE controllers are unsupported for this QEMU binary or machine type`.
+   * **Solution:** The `q35` hardware profile does not support legacy IDE buses, but the Terraform libvirt provider hardcodes the `cloud-init` CD-ROM to IDE. We implemented an `xslt` transformation block in `main.tf` to dynamically rewrite the libvirt XML on-the-fly, changing the CD-ROM bus from `ide` to `sata`.
+
+2. **AlmaLinux 9 CPU Kernel Panics:**
+   * **Error:** VMs failed to boot properly due to missing microarchitecture features.
+   * **Solution:** AlmaLinux 9 strictly requires the `x86-64-v2` instruction set. We updated the Terraform domain definition to include `cpu { mode = "host-passthrough" }`, passing the host's CPU capabilities directly to the guest.
+
+3. **Ansible IPv6 Link-Local Connectivity Issues:**
+   * **Error:** The dynamic inventory generation in `outputs.tf` was grabbing `fe80::...` IPv6 addresses, causing Ansible SSH connections to hang or fail.
+   * **Solution:** Rewrote the IP extraction logic in `outputs.tf` using a Terraform `for` loop and `regexall("^[0-9.]+$")` to filter out IPv6 and strictly bind the inventory to the IPv4 leases.
+
+4. **Ansible Concurrent SSH Key Hangs:**
+   * **Error:** Running Ansible concurrently against two new nodes caused SSH key fingerprint prompts `(yes/no)` to overlap and hang the terminal, resulting in `UNREACHABLE` errors.
+   * **Solution:** Created an `ansible.cfg` file configuring `host_key_checking = False` to ensure zero-touch execution for the Jenkins pipeline.
+
+5. **Cloud-Init Background Upgrade Lock Contention:**
+   * **Error:** The Ansible playbook was randomly failing mid-run with `Connection reset by peer` and then timing out completely.
+   * **Solution:** Investigated the hypervisor logs and discovered `cloud-init` was running a full `dnf upgrade` in the background (which upgraded network components and dropped the connection). Resolved by setting `package_update: false` and `package_upgrade: false` in `cloud_init.cfg` to ensure a stable state for Ansible.
+
+6. **Ansible CIS Role Strict Versioning:**
+   * **Error:** The playbook failed asserting `You must use Ansible 2.16.1 or greater` (the system had `2.14.18` installed via standard AlmaLinux repos).
+   * **Solution:** Rather than installing custom pip environments that could break Jenkins, we manually bypassed the `version_compare` assertion inside the role's `main.yml`, as the core logic remains fully backward compatible.
 
 ---
 

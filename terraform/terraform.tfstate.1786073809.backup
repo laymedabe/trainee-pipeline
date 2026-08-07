@@ -1,0 +1,270 @@
+{
+  "version": 4,
+  "terraform_version": "1.15.8",
+  "serial": 30,
+  "lineage": "d042f0d6-b55b-d895-f61a-4c2085daa9dc",
+  "outputs": {
+    "node_ips": {
+      "value": null,
+      "type": "dynamic"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "libvirt_cloudinit_disk",
+      "name": "commoninit",
+      "provider": "provider[\"registry.terraform.io/dmacvicar/libvirt\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "id": "/home/pool_a/pa-node-1-commoninit.iso;0daf2032-0f96-467f-86aa-7442f3dea9ca",
+            "meta_data": "",
+            "name": "pa-node-1-commoninit.iso",
+            "network_config": "",
+            "pool": "pool_a",
+            "user_data": "#cloud-config\n\n# Update packages on first boot\npackage_update: true\npackage_upgrade: true\n\n# Set the default user and add your SSH key so you can log in\nusers:\n  - name: sysadmin\n    groups: wheel\n    sudo: ALL=(ALL) NOPASSWD:ALL\n    shell: /bin/bash\n    ssh_authorized_keys:\n      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDK6MtqHzPrKgwilC5JzDHA484pM0CIQ4dJgX7izVHg4li3UA1PB5SjYbPVY15RRtZEosr7Zto7Pj7xc9vrIaCMt6AfyeTG/+PjBEAQ+vhluOdnVTibItnSTI6WpdIL0o9QLUon7fmJE/tjUN9yycjyuc6jLWQlZ7VzOseyY6npvcqTCIni6hSXJDyf1rt/N8V/G/E9V1V5/lFocSUTzHHvWdk+HlgiXJjEgtoCO7mio/KPNw4sFog1zHeCx29GeTDooq32Xo3g/t3cIFQEUH5cnfkRjq7IavmZuF4YEu6pfRUlMU6TuOXXH5GsF8igGySX+JOjm5gmykajkxYCIUHz aw7@almalinuxaw7\n # We will pass this in from Terraform\n\n# Set the hostname (passed from Terraform)\nhostname: pa-node-1\nfqdn: pa-node-1.localdomain\nmanage_etc_hosts: true\n\n# Keep ssh configuration clean\nssh_pwauth: false\ndisable_root: true\n"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "id": "/home/pool_a/pa-node-2-commoninit.iso;86db7998-9d78-4fc4-b6ff-85088e73af0a",
+            "meta_data": "",
+            "name": "pa-node-2-commoninit.iso",
+            "network_config": "",
+            "pool": "pool_a",
+            "user_data": "#cloud-config\n\n# Update packages on first boot\npackage_update: true\npackage_upgrade: true\n\n# Set the default user and add your SSH key so you can log in\nusers:\n  - name: sysadmin\n    groups: wheel\n    sudo: ALL=(ALL) NOPASSWD:ALL\n    shell: /bin/bash\n    ssh_authorized_keys:\n      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDK6MtqHzPrKgwilC5JzDHA484pM0CIQ4dJgX7izVHg4li3UA1PB5SjYbPVY15RRtZEosr7Zto7Pj7xc9vrIaCMt6AfyeTG/+PjBEAQ+vhluOdnVTibItnSTI6WpdIL0o9QLUon7fmJE/tjUN9yycjyuc6jLWQlZ7VzOseyY6npvcqTCIni6hSXJDyf1rt/N8V/G/E9V1V5/lFocSUTzHHvWdk+HlgiXJjEgtoCO7mio/KPNw4sFog1zHeCx29GeTDooq32Xo3g/t3cIFQEUH5cnfkRjq7IavmZuF4YEu6pfRUlMU6TuOXXH5GsF8igGySX+JOjm5gmykajkxYCIUHz aw7@almalinuxaw7\n # We will pass this in from Terraform\n\n# Set the hostname (passed from Terraform)\nhostname: pa-node-2\nfqdn: pa-node-2.localdomain\nmanage_etc_hosts: true\n\n# Keep ssh configuration clean\nssh_pwauth: false\ndisable_root: true\n"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "libvirt_pool",
+      "name": "pool_a",
+      "provider": "provider[\"registry.terraform.io/dmacvicar/libvirt\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allocation": 108237418496,
+            "available": 62479630336,
+            "capacity": 170717048832,
+            "id": "2d5561e7-68f8-4880-a843-fadb437b3662",
+            "name": "pool_a",
+            "path": "/home/pool_a",
+            "type": "dir",
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "libvirt_volume",
+      "name": "data_disk_1",
+      "provider": "provider[\"registry.terraform.io/dmacvicar/libvirt\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "base_volume_id": null,
+            "base_volume_name": null,
+            "base_volume_pool": null,
+            "format": "qcow2",
+            "id": "/home/pool_a/pa-node-1-data1.qcow2",
+            "name": "pa-node-1-data1.qcow2",
+            "pool": "pool_a",
+            "size": 2147483648,
+            "source": null,
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "base_volume_id": null,
+            "base_volume_name": null,
+            "base_volume_pool": null,
+            "format": "qcow2",
+            "id": "/home/pool_a/pa-node-2-data1.qcow2",
+            "name": "pa-node-2-data1.qcow2",
+            "pool": "pool_a",
+            "size": 2147483648,
+            "source": null,
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "libvirt_volume",
+      "name": "data_disk_2",
+      "provider": "provider[\"registry.terraform.io/dmacvicar/libvirt\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "base_volume_id": null,
+            "base_volume_name": null,
+            "base_volume_pool": null,
+            "format": "qcow2",
+            "id": "/home/pool_a/pa-node-1-data2.qcow2",
+            "name": "pa-node-1-data2.qcow2",
+            "pool": "pool_a",
+            "size": 2147483648,
+            "source": null,
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "base_volume_id": null,
+            "base_volume_name": null,
+            "base_volume_pool": null,
+            "format": "qcow2",
+            "id": "/home/pool_a/pa-node-2-data2.qcow2",
+            "name": "pa-node-2-data2.qcow2",
+            "pool": "pool_a",
+            "size": 2147483648,
+            "source": null,
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "libvirt_volume",
+      "name": "os_base",
+      "provider": "provider[\"registry.terraform.io/dmacvicar/libvirt\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "base_volume_id": null,
+            "base_volume_name": null,
+            "base_volume_pool": null,
+            "format": "qcow2",
+            "id": "/home/pool_a/almalinux9-base.qcow2",
+            "name": "almalinux9-base.qcow2",
+            "pool": "pool_a",
+            "size": 21474836480,
+            "source": "/home/pool_a/packer_output/almalinux9-golden.qcow2",
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "libvirt_volume",
+      "name": "os_disk",
+      "provider": "provider[\"registry.terraform.io/dmacvicar/libvirt\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "base_volume_id": "/home/pool_a/almalinux9-base.qcow2",
+            "base_volume_name": null,
+            "base_volume_pool": null,
+            "format": "qcow2",
+            "id": "/home/pool_a/pa-node-1-os.qcow2",
+            "name": "pa-node-1-os.qcow2",
+            "pool": "pool_a",
+            "size": 21474836480,
+            "source": null,
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a",
+            "libvirt_volume.os_base"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "base_volume_id": "/home/pool_a/almalinux9-base.qcow2",
+            "base_volume_name": null,
+            "base_volume_pool": null,
+            "format": "qcow2",
+            "id": "/home/pool_a/pa-node-2-os.qcow2",
+            "name": "pa-node-2-os.qcow2",
+            "pool": "pool_a",
+            "size": 21474836480,
+            "source": null,
+            "xml": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "libvirt_pool.pool_a",
+            "libvirt_volume.os_base"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

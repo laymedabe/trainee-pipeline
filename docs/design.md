@@ -39,7 +39,7 @@ To fulfill the requirement of demonstrating Ansible variable precedence, we trac
 | `rhel9cis_warning_banner` | `"JENKINS EXTRA-VARS BANNER"` | **Level 3:** Jenkins Pipeline (`--extra-vars`) | Play Vars (`playbook.yml`) | Command-line extra variables (`-e` or `--extra-vars`) have the absolute highest precedence in Ansible and override all other variable definitions across the board. |
 
 **Verification & Demonstration Notes (The Difference Between Levels):**
-Ansible determines variable precedence by how "close" or "specific" the variable definition is to the actual execution. We demonstrated this by defining the exact same variable (`rhel9cis_warning_banner`) in three different places:
+Ansible determines variable precedence by how "close" or "specific" the variable definition is to the actual execution. We demonstrated this by defining the exact same variable (`rhel9cis_warning_banner`) in three different places.:
 
 1. **Level 1 (Broadest Scope):** Set in `group_vars/all/vars.yml`. This applies broadly to all servers in the inventory. If no other variable is set, Ansible uses this.
 2. **Level 2 (Playbook Scope):** Set in the `vars:` block of `playbook.yml`. This is more specific because it applies directly to the current playbook run, overriding the broad inventory variables (Level 1).

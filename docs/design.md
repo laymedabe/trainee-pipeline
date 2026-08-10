@@ -123,6 +123,13 @@ Throughout the development of this infrastructure, several major technical hurdl
    * **Error:** The playbook failed asserting `You must use Ansible 2.16.1 or greater` (the system had `2.14.18` installed via standard AlmaLinux repos).
    * **Solution:** Rather than installing custom pip environments that could break Jenkins, we manually bypassed the `version_compare` assertion inside the role's `main.yml`, as the core logic remains fully backward compatible.
 
+7. **Virtualization Modules & VM Power State on Host Reboot:**
+   * **Error:** After rebooting the host machine, running `terraform apply` fails with "Domain requires KVM, but it is not available" or outputs IP addresses as "offline".
+   * **Solution:**
+     1. The KVM kernel modules may not load automatically. Manually load them using `sudo modprobe kvm_intel` (or `kvm_amd`).
+     2. Run `sudo terraform apply` to instruct libvirt to power the existing VMs back on (this acts safely as a power button and does not destroy existing data).
+     3. Wait a few moments for the VMs to boot, then run `sudo terraform refresh` to fetch their newly assigned DHCP IP addresses and update the Ansible `hosts.ini` dynamic inventory.
+
 ---
 
 ## 6. Expected Goss Results

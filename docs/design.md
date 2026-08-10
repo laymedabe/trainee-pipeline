@@ -59,6 +59,15 @@ Last login: Fri Aug  7 06:39:23 2026 from 192.168.122.1
 ---
 
 ## 5. Tailoring Decisions & Exceptions
+
+### CIS Profile Levels Overview
+Before applying tailoring, it's important to understand the purpose of the two primary CIS Benchmark profiles:
+
+| CIS Profile | Purpose & Description | When to Use |
+| :--- | :--- | :--- |
+| **Level 1** | Practical, baseline security. Designed to be easy to implement and provide a clear security benefit **without** significantly inhibiting the utility or functionality of the system. | Used as the standard baseline for all general-purpose systems and corporate IT environments. |
+| **Level 2** | Defense-in-depth security. Highly restrictive and designed for environments where security is paramount. Implementing this can negatively impact system performance or break application functionality if not carefully tailored. | Used for highly sensitive, air-gapped, or strictly regulated environments (e.g., military, PCI-DSS, HIPAA). |
+
 The following specific tailoring decisions were made to align with the Pair A assignment:
 
 * **Use of RSyslog:** Enforced `rhel9cis_syslog: rsyslog` to override the default `journald` implementation.

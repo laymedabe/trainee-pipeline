@@ -15,7 +15,7 @@ variable "hostname_prefix" {
 
 variable "os_image_path" {
   description = "Path to the golden image built by Packer"
-  default     = "/home/pool_a/packer_output/almalinux9-golden.qcow2"
+  default     = "/var/tmp/packer_output/almalinux9-golden.qcow2"
 }
 
 variable "ssh_public_key" {

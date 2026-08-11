@@ -32,8 +32,8 @@ source "qemu" "almalinux9" {
   # Tell Packer not to open a UI/VNC window (runs the build silently in the background).
   headless          = true
 
-  # Output to your dedicated Pair A storage pool. This is where the final image is saved.
-  output_directory  = "/home/pool_a/packer_output"
+  # Output to a persistent tmp directory to prevent conflicts with Terraform's managed libvirt pool
+  output_directory  = "/var/tmp/packer_output"
   
   # The filename of the final Golden Image.
   vm_name           = "almalinux9-golden.qcow2"

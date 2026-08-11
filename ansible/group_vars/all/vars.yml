@@ -4,7 +4,7 @@
 
 # 1. Login Banner
 # (Control 1.7.2 / 1.7.3)
-# rhel9cis_level_2: false
+rhel9cis_level_2: false
 rhel9cis_warning_banner: "AUTHORIZED ACCESS ONLY"
 
 # 2. SSHD Timeout
@@ -41,3 +41,11 @@ rhel9cis_authselect_custom_profile_name: "custom_cis_profile"
 # AlmaLinux 9 ships with Ansible 2.14.18 natively. By overriding this variable,
 # we bypass the role's strict version check so it runs smoothly on our native OS.
 min_ansible_version: "2.14.0"
+
+# 8. Goss Audit Configuration
+# Required by Jenkins to execute the final audit phase and archive the report.
+setup_audit: true
+run_audit: true
+fetch_audit_output: true
+audit_output_destination: "{{ playbook_dir }}/audit_reports/"
+audit_format: json

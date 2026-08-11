@@ -61,6 +61,14 @@ resource "libvirt_cloudinit_disk" "commoninit" {
     hostname       = "${var.hostname_prefix}-${count.index + 1}"
     ssh_public_key = file(var.ssh_public_key)
   })
+  network_config = <<-EOF
+    version: 2
+    ethernets:
+      main_iface:
+        match:
+          name: en*
+        dhcp4: true
+  EOF
 }
 
 # VMs

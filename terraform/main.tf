@@ -106,10 +106,8 @@ resource "libvirt_domain" "pa_node" {
     volume_id = libvirt_volume.data_disk_2[count.index].id
   }
 
-  # Cloud-Init disk (attached as virtio file instead of IDE CD-ROM for q35 compatibility)
-  disk {
-    file = "/home/pool_a/${libvirt_cloudinit_disk.commoninit[count.index].name}"
-  }
+  # Cloud-Init
+  cloudinit = libvirt_cloudinit_disk.commoninit[count.index].id
 
   # Use VNC instead of SPICE (qemu-kvm minimal doesn't include SPICE)
   graphics {

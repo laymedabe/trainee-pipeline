@@ -25,7 +25,19 @@ rhel9cis_pam_faillock_deny: 0
 rhel9cis_rule_5_3_3_1_1: false
 rhel9cis_rule_5_3_3_1_2: false
 rhel9cis_rule_5_3_3_1_3: false
-rhel9cis_rule_5_2_4: false
+# 5. Cloud Environment & Automation Exceptions
+# Since this is an automated cloud deployment, we use SSH keys and disable passwords.
+# Therefore, we must disable CIS rules that check for local passwords, or the playbook will fail.
+rhel9cis_rule_5_2_4: false # Disables the check requiring the 'sysadmin' user to have a password
+rhel9cis_rule_5_4_2_4: false # Disables the check requiring the 'root' user to have a password
+
+# 6. Authselect Profile
+# The CIS role requires us to explicitly provide a custom authselect profile name 
+# to prove we aren't just using the default unmodified configuration.
 rhel9cis_authselect_custom_profile_name: "custom_cis_profile"
-rhel9cis_rule_5_4_2_4: false
+
+# 7. Ansible Version Compatibility
+# The CIS role aggressively asserts that Ansible >= 2.16.1 must be used.
+# AlmaLinux 9 ships with Ansible 2.14.18 natively. By overriding this variable,
+# we bypass the role's strict version check so it runs smoothly on our native OS.
 min_ansible_version: "2.14.0"

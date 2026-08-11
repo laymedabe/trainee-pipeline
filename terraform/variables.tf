@@ -20,6 +20,6 @@ variable "os_image_path" {
 
 variable "ssh_public_key" {
   description = "Public SSH key for the sysadmin user"
-  default     = "/home/aw7/.ssh/id_rsa.pub"
+  default     = "id_rsa.pub"
 }
 

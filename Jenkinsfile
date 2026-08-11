@@ -34,8 +34,8 @@ pipeline {
             }
             steps {
                 dir('packer') {
-                    sh 'packer init build.pkr.hcl'
-                    sh 'packer build build.pkr.hcl'
+                    sh '/usr/bin/packer init build.pkr.hcl'
+                    sh '/usr/bin/packer build build.pkr.hcl'
                 }
             }
         }

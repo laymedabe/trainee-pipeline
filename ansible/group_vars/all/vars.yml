@@ -4,7 +4,7 @@
 
 # 1. Login Banner
 # (Control 1.7.2 / 1.7.3)
-rhel9cis_level_2: false
+# rhel9cis_level_2: false
 rhel9cis_warning_banner: "AUTHORIZED ACCESS ONLY"
 
 # 2. SSHD Timeout

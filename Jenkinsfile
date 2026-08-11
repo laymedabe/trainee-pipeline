@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         // Vault password fetched from Jenkins credentials (never hardcoded in Git)
-        // VAULT_PASS = credentials('ansible-vault-password')
+        VAULT_PASS = credentials('ansible-vault-password')
         TF_IN_AUTOMATION = 'true'
     }
 
@@ -56,11 +56,11 @@ pipeline {
                     sh 'ansible-galaxy install -r requirements.yml -p roles/'
                     
                     // Create a dummy vault password file from the Jenkins credential for this run
-                    // sh 'echo $VAULT_PASS > vault_password.txt'
+                    sh 'echo $VAULT_PASS > vault_password.txt'
 
                     // Run the playbook, dynamically passing an extra-var to demonstrate 
                     // variable precedence (Level 3 - highest precedence, overriding play and group vars)
-                    sh "ansible-playbook -i inventory/hosts.ini playbook.yml -e \"rhel9cis_warning_banner='JENKINS EXTRA-VARS BANNER'\""
+                    sh "ansible-playbook -i inventory/hosts.ini playbook.yml --vault-password-file vault_password.txt -e \"rhel9cis_warning_banner='JENKINS EXTRA-VARS BANNER'\""
                 }
             }
         }

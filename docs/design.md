@@ -139,7 +139,71 @@ Throughout the development of this infrastructure, several major technical hurdl
      2. Run `sudo terraform apply` to instruct libvirt to power the existing VMs back on (this acts safely as a power button and does not destroy existing data).
      3. Wait a few moments for the VMs to boot, then run `sudo terraform refresh` to fetch their newly assigned DHCP IP addresses and update the Ansible `hosts.ini` dynamic inventory.
 
+## 8. Final Implementation Details & Fixes (Jenkins & Packer)
+
+During the final integration of the Jenkins CI/CD pipeline, the following critical architecture changes and fixes were applied:
+
+1. **Storage Pool Decoupling:** 
+   * **Issue:** `terraform destroy` could not cleanly delete the `pool_a` directory because Packer was saving the Golden Image inside it.
+   * **Fix:** Updated `build.pkr.hcl` to output the Golden Image to `/var/tmp/packer_output/` to cleanly separate the immutable build artifact from the Terraform-managed live infrastructure pool.
+2. **Minimal ISO SSL Verification Errors:**
+   * **Issue:** The Kickstart automated installation paused on a fatal `Error setting up software source` error because the VM's out-of-sync clock failed to validate the `https://` SSL certificate for the AlmaLinux repository.
+   * **Fix:** Downgraded the kickstart installation source URLs from `https://` to `http://` to bypass SSL date validation during the initial boot environment.
+3. **QEMU SLIRP DNS Resolution Failures:**
+   * **Issue:** The installer could not resolve `vault.almalinux.org` because QEMU's default user-mode (SLIRP) network occasionally failed to forward DNS requests correctly.
+   * **Fix:** Injected `nameserver=8.8.8.8` into both the QEMU kernel boot parameters and the Kickstart network configuration to explicitly force Google's Public DNS.
+
 ---
 
-## 6. Expected Goss Results
-*(To be populated after the first full hardening pipeline run).*
+## 9. Final Goss Audit Results
+After successfully executing the full CI/CD pipeline and Ansible playbook, the built-in Goss scanner generated the final compliance scorecard against the CIS Level 1 Server profile.
+
+**Final Score:**
+* **Total Tests Run:** 616
+* **Failed Tests:** 44 
+* **Skipped Tests:** 10
+* **Passed Tests:** 572
+* **Overall Compliance:** **92.85%**
+
+The infrastructure successfully exceeds the required 90% compliance threshold!
+
+---
+
+## 10. Manual Execution Quick Reference
+
+If you need to reproduce this exact 92.85% environment manually (bypassing Jenkins), run the following commands in order from the repository root:
+
+### 1. Build the Golden Image (Packer)
+```bash
+cd packer
+sudo /usr/bin/packer build -force build.pkr.hcl
+```
+*(Builds the KVM Golden Image and outputs it to `/var/tmp/packer_output/`)*
+
+### 2. Provision the Infrastructure (Terraform)
+```bash
+cd ../terraform
+terraform init -reconfigure
+sudo terraform apply -auto-approve
+```
+*(Provisions the VMs in libvirt and attaches the data disks)*
+
+### 3. Refresh the Dynamic Inventory
+```bash
+# Wait ~30 seconds for VMs to boot before running this
+sudo terraform apply -refresh-only -auto-approve
+```
+*(Fetches the new DHCP IP addresses from the hypervisor and writes them to Ansible's `hosts.ini`)*
+
+### 4. CIS Hardening & Validation (Ansible)
+```bash
+cd ../ansible
+ansible-playbook -i inventory/hosts.ini playbook.yml --ask-vault-pass
+```
+*(Executes the CIS hardening role and runs the final Goss audit)*
+
+### 5. Check the Final Audit Score
+```bash
+jq '.summary | . + { "passing_percentage": (((."test-count" - ."failed-count") / ."test-count") * 100 | tostring + "%") }' audit_reports/pa-node-1*post_scan*.json
+```
+*(Calculates and displays your final compliance percentage)*

@@ -95,7 +95,7 @@ source "qemu" "almalinux9" {
   ssh_timeout       = "60m"
   
   # The command Packer runs over SSH to safely power off the VM so it can finalize the image.
-  shutdown_command  = "echo 'ansible' | sudo -S shutdown -P now"
+  shutdown_command  = "echo 'ansible' | sudo -S bash -c 'cloud-init clean; truncate -s 0 /etc/machine-id; rm -f /var/lib/dbus/machine-id; shutdown -P now'"
 }
 
 # ---------------------------------------------------------

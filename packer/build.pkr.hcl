@@ -79,7 +79,7 @@ source "qemu" "almalinux9" {
     "<up><wait>",
     "e",
     "<down><down><end>",
-    " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg",
+    " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg nameserver=8.8.8.8",
     "<f10>"
   ]
 

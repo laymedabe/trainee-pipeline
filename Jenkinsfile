@@ -53,7 +53,7 @@ pipeline {
             steps {
                 dir('ansible') {
                     // Install the pinned CIS role from requirements.yml
-                    sh 'ansible-galaxy install -r requirements.yml -p roles/'
+                    sh 'ansible-galaxy install -r requirements.yml -p roles/ --force'
                     
                     // Create a dummy vault password file from the Jenkins credential for this run
                     sh 'echo $VAULT_PASS > vault_password.txt'

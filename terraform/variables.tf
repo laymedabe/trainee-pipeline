@@ -5,7 +5,7 @@ variable "libvirt_uri" {
 
 variable "vm_count" {
   description = "Number of VMs to provision"
-  default     = 2
+  default     = 1
 }
 
 variable "hostname_prefix" {

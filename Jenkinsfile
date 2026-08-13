@@ -82,7 +82,7 @@ pipeline {
     post {
         always {
             // Archive the Goss report artifact back to Jenkins
-            archiveArtifacts artifacts: '**/goss-report.json, **/goss-report.html, **/*-goss-report*', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'ansible/audit_reports/*.json, ansible/audit_reports/*.html', allowEmptyArchive: true
             
             // Clean up the workspace, ensuring no secrets or generated inventory are left behind
             cleanWs()

@@ -251,3 +251,32 @@ To confirm that `rsyslog` was successfully installed and enabled (overriding the
 ```bash
 ssh sysadmin@<VM_IP> "systemctl status rsyslog"
 ```
+
+---
+
+## 13. File System Structure (PAIR A)
+
+This section provides an overview of the directory structure for the `trainee-pipeline` repository, detailing the purpose of each directory and subdirectory:
+
+* **`.git/` & `.gitignore`**: Contains the source control tracking for the repository and files to ignore.
+* **`Jenkinsfile`**: The declarative pipeline script used by Jenkins to orchestrate the entire end-to-end CI/CD process.
+* **`ansible/`**: Contains all configuration management code to harden the infrastructure.
+  * **`ansible.cfg`**: Configures Ansible defaults, particularly overriding SSH host key checking for automated pipelines.
+  * **`playbook.yml`**: The main execution entry point for configuring and hardening the VMs.
+  * **`requirements.yml`**: Defines the required external Ansible dependencies (roles and collections), specifically the CIS hardening role.
+  * **`inventory/`**: Holds the `hosts.ini` dynamic inventory file, which is populated with IP addresses on-the-fly by Terraform.
+  * **`group_vars/`**: Contains group-level variables (e.g., `all/`) used to demonstrate Level 1 variable precedence.
+  * **`roles/`**: Download location for third-party roles like `rhel9-cis` during the Ansible-Galaxy dependency resolution step.
+  * **`audit_reports/`**: Directory where final Goss security compliance audit JSON reports are output and stored.
+* **`docs/`**: Holds project documentation, architectural decisions, and guides (like this `design.md` file).
+* **`packer/`**: Contains the configuration to build the Golden Image.
+  * **`build.pkr.hcl`**: The Packer HashiCorp Configuration Language file defining the AlmaLinux 9 build process.
+  * **`kickstart.cfg`**: The automated installer configuration used to define the initial base operating system and partitioning.
+* **`terraform/`**: Contains the infrastructure-as-code definitions to provision the virtual machines.
+  * **`main.tf`**: The primary declarative file defining the libvirt provider, network, volumes, and QEMU instances.
+  * **`variables.tf`**: Defines input variables (like memory, disk sizes, and network names) for the Terraform module.
+  * **`outputs.tf`**: Extracts necessary data from the provisioned infrastructure, such as dynamically building the Ansible inventory file.
+  * **`backend.tf`**: Configures the state file location, allowing state persistence across Jenkins workspace cleanups.
+  * **`cloud_init.cfg`**: Provides the early-boot initialization instructions for the VMs (e.g., creating users, injecting SSH keys).
+  * **`id_rsa.pub`**: The public SSH key used to grant access to the newly provisioned servers.
+  * **`templates/`**: Directory containing Terraform templates, such as the `inventory.tpl` file used to generate the Ansible inventory.

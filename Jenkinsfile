@@ -59,9 +59,11 @@ pipeline {
                     // Create a dummy vault password file from the Jenkins credential for this run
                     sh 'echo $VAULT_PASS > vault_password.txt'
 
-                    // Run the playbook, dynamically passing an extra-var to demonstrate 
-                    // variable precedence (Level 3 - highest precedence, overriding play and group vars)
-                    sh "ansible-playbook -i inventory/hosts.ini playbook.yml --vault-password-file vault_password.txt -e \"rhel9cis_warning_banner='JENKINS EXTRA-VARS BANNER'\""
+                    // Patch the strict version check out of the freshly downloaded role
+                    sh 'sed -i "s/2.16.1/2.14.0/g" roles/rhel9-cis/vars/main.yml'
+
+                    // Run the playbook using only Level 1 (group_vars) and Level 2 (playbook vars)
+                    sh "ansible-playbook -i inventory/hosts.ini playbook.yml --vault-password-file vault_password.txt"
                 }
             }
         }

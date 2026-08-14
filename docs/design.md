@@ -419,3 +419,48 @@ This section provides an overview of the directory structure for the `trainee-pi
   * **`cloud_init.cfg`**: Provides the early-boot initialization instructions for the VMs (e.g., creating users, injecting SSH keys).
   * **`id_rsa.pub`**: The public SSH key used to grant access to the newly provisioned servers.
   * **`templates/`**: Directory containing Terraform templates, such as the `inventory.tpl` file used to generate the Ansible inventory.
+
+---
+
+## 14. Areas for Future Improvement & Evaluation Readiness
+
+This section outlines potential areas of improvement, technical optimizations, and key readiness points for evaluation based on the Pair A project brief.
+
+---
+
+### 14.1 Technical & Configuration Optimizations
+
+1. **Ansible Vault for Sensitive Variables:**
+   * **Current Implementation:** The pipeline passes the vault password from Jenkins credentials via the `VAULT_PASS` environment variable into a temporary password file.
+   * **Improvement:** Migrate any sensitive values (e.g., custom user credentials, internal tokens, sensitive override variables) into an encrypted `ansible/vars/vault.yml` using `ansible-vault encrypt`. This ensures all secrets remain encrypted at rest within the Git repository while maintaining zero-touch automated decryption in Jenkins.
+
+2. **Persistent Mount Robustness (`fstab`):**
+   * **Current Implementation:** Extra data disks (`/mnt/data1` and `/mnt/data2` on the `virtio` bus) are formatted as `xfs` and mounted via Ansible `pre_tasks`.
+   * **Improvement:** Ensure mount definitions in `ansible/playbook.yml` use permanent block device UUIDs (`blkid`) rather than transient device node names (`/dev/vdb`, `/dev/vdc`) to prevent accidental disk misassignment if the hypervisor reorders virtual storage devices.
+
+3. **Ansible Version Alignment:**
+   * **Current Implementation:** The downloaded `rhel9-cis` role is dynamically patched via `sed` in the `Jenkinsfile` to support the default `ansible-core 2.14.x` package available in AlmaLinux 9 repositories.
+   * **Improvement:** Provision an isolated Python virtual environment (`python3 -m venv`) inside the Jenkins execution agent to install `ansible-core >= 2.16.1` via `pip`. This eliminates the need for inline role patching while ensuring complete forward compatibility.
+
+4. **Mount Flags for CIS Compliance on `/tmp`:**
+   * **Current Implementation:** `/tmp` is partitioned as a dedicated logical volume within `vg_sys_a`.
+   * **Improvement:** Enforce strict mount flags (`nodev,nosuid,noexec`) in `/etc/fstab` during the Kickstart installation phase or early Ansible plays to turn the 4 failed Goss tests for `/tmp` into passing tests.
+
+---
+
+### 14.2 Presentation & Evaluation Defense Points
+
+1. **Defending Hardware Constraints (RAM & VM Count):**
+   * The project brief specifies 2 VMs with 2GB RAM each. 
+   * **Defense:** Due to physical host laptop constraints (3GB host RAM), the infrastructure was scaled to 1 VM with 1GB RAM to prevent host OOM kernel panics. The Terraform code and dynamic inventory templates are written generically using dynamic `for` loops, meaning the pipeline seamlessly scales to 2 or more nodes simply by updating `vm_count = 2` without any code modifications.
+
+2. **Live `virsh` Demonstration Tasks (Section 6):**
+   * Be prepared to demonstrate the four live hypervisor tasks while Jenkins runs with `DESTROY_AND_REBUILD` checked:
+     * **Prove UEFI:** `virsh dumpxml pa-node-1 | grep -iE 'loader|nvram'`
+     * **List Disks & Match to Terraform:** `virsh domblklist pa-node-1 --details`
+     * **Live Attach & Detach Disk:** `virsh attach-disk pa-node-1 /var/tmp/demo-disk.qcow2 vdd --targetbus virtio --live --config` and `virsh detach-disk pa-node-1 vdd --live --config`
+     * **Walk Storage Pool:** `virsh pool-info pool_a && virsh vol-list pool_a`
+
+3. **Cross-Presentation Strategy (Partner's Track):**
+   * Per Section 4 & 6 of the brief, prepare to present the track completed by your partner (e.g., if you focused on Packer/Terraform, practice walking through the Ansible lockdown role, variable precedence hierarchy, and Goss auditing).
+

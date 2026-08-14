@@ -22,10 +22,67 @@ The VMs are provisioned with three disks on the `virtio` bus to separate the OS 
 ---
 
 ## 3. Inventory Generation
-Ansible inventory generation is completely dynamic, driven by Terraform outputs to ensure we never have stale IP addresses.
+Ansible inventory generation is completely dynamic, driven by Terraform outputs to ensure we never have hardcoded or stale IP addresses.
 
-* **Mechanism:** We use Terraform's native `local_file` resource alongside the `templatefile` function in our `outputs.tf`. 
-* **Process:** When Terraform creates the `libvirt_domain` resources, it automatically detects the IP addresses assigned by the KVM DHCP server. Terraform injects these IPs into our `inventory.tpl` template and writes the final output directly into `ansible/inventory/hosts.ini` during the apply phase.
+```
+┌─────────────────────────┐      1. DHCP Leases      ┌─────────────────────────┐
+│     libvirt_domain      │ ───────────────────────► │  terraform/outputs.tf   │
+│ (pa-node-1, pa-node-2)  │                          │  (extracts IPv4 leases) │
+└─────────────────────────┘                          └────────────┬────────────┘
+                                                                  │ 2. Injects variables
+                                                                  ▼
+┌─────────────────────────┐      3. Writes file      ┌─────────────────────────┐
+│   ansible/inventory/    │ ◄─────────────────────── │  terraform/templates/   │
+│        hosts.ini        │                          │      inventory.tpl      │
+└─────────────────────────┘                          └─────────────────────────┘
+```
+
+### 3.1 Implementation Details
+
+1. **Terraform Resource Management (`local_file`):**
+   In `terraform/outputs.tf`, we utilize Terraform's native `local_file` resource combined with the `templatefile` function to render the inventory file directly into `ansible/inventory/hosts.ini`:
+   ```hcl
+   resource "local_file" "ansible_inventory" {
+     content = templatefile("${path.module}/templates/inventory.tpl", {
+       nodes = {
+         for idx, domain in libvirt_domain.pa_node : domain.name => try([for addr in domain.network_interface[0].addresses : addr if length(regexall("^[0-9.]+$", addr)) > 0][0], "offline")
+       }
+     })
+     filename = "${path.module}/../ansible/inventory/hosts.ini"
+   }
+   ```
+
+2. **Automated IPv4 Filtering & Discovery:**
+   The `libvirt` provider exposes all assigned network addresses on the guest interface. To avoid catching IPv6 link-local addresses (`fe80:...`), our extraction logic uses a Terraform comprehension loop with regular expression filtering (`regexall("^[0-9.]+$", addr)`). This guarantees that only valid, routable IPv4 addresses are passed downstream to Ansible.
+
+3. **Dynamic Template Scaling:**
+   In `terraform/templates/inventory.tpl`, we define the inventory structure using Terraform template directives (`%{ for name, ip in nodes ~}`):
+   ```ini
+   [all]
+   %{ for name, ip in nodes ~}
+   ${name} ansible_host=${ip} ansible_user=sysadmin
+   %{ endfor ~}
+
+   [pair_a]
+   %{ for name, ip in nodes ~}
+   ${name}
+   %{ endfor ~}
+   ```
+   Whether `vm_count` is set to `1` or `2`, the template dynamically expands or shrinks without requiring any manual adjustments.
+
+4. **Lifecycle & Clean Teardown (`terraform destroy`):**
+   Because `ansible/inventory/hosts.ini` is managed as an active Terraform state resource (`local_file.ansible_inventory`), running `terraform destroy` automatically destroys and deletes the generated inventory file. This satisfies the requirement: *"terraform destroy leaves nothing behind: no domains, volumes, cloud-init ISOs, or generated inventory"*.
+
+5. **Sample Generated Output:**
+   ```ini
+   [all]
+   pa-node-1 ansible_host=192.168.122.169 ansible_user=sysadmin
+   pa-node-2 ansible_host=192.168.122.174 ansible_user=sysadmin
+
+   [pair_a]
+   pa-node-1
+   pa-node-2
+   ```
 
 ---
 

@@ -167,7 +167,89 @@ After successfully executing the full CI/CD pipeline and Ansible playbook, the b
 
 The infrastructure successfully exceeds the required 90% compliance threshold!
 
+### 9.1 Three Failures Explained & Live Simulation
+
+As required by **Section 6 (Presentation)** of the project brief, here is the detailed breakdown and live simulation procedure for three key test failures identified in the Goss audit report:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   THREE GOSS FAILURES BREAKDOWN                                  │
+├────┬─────────────────────────────┬─────────────────────────────────┬─────────────────────────────┤
+│ #  │ CIS Benchmark Rule          │ Reason for Failure              │ Justification / Category    │
+├────┼─────────────────────────────┼─────────────────────────────────┼─────────────────────────────┤
+│ 1  │ 5.3.2.2 (pam_faillock)      │ Faillock PAM module disabled    │ Intentional Pair A Tailoring│
+│ 2  │ 6.2.3.6 (Remote Syslog Host)│ No upstream syslog target       │ Environment/Lab Limitation  │
+│ 3  │ 5.3.3.2.7 (Root PW Quality) │ enforce_for_root not enabled    │ SSH-Key / Cloud Auth Model  │
+└────┴─────────────────────────────┴─────────────────────────────────┴─────────────────────────────┘
+```
+
 ---
+
+#### Failure 1: CIS 5.3.2.2 – Ensure pam_faillock module is enabled
+* **Rule Title:** `5.3.2.2 | Ensure pam_faillock module is enabled`
+* **Goss Resource Tested:** `File: /etc/pam.d/system-auth` and `/etc/pam.d/password-auth`
+* **Failure Symptom:** Goss expects regex patterns `/auth\s+required\s+pam_faillock.so preauth/` and `/account\s+required\s+pam_faillock.so/`.
+* **Root Cause & Rationale:** 
+  * In the **Pair A Assignment Brief (Section 3)**, we are explicitly instructed:  
+    `"No account lockouts on failed password attempts on both user and root accounts (Safety / Security)"`.
+  * Enabling `pam_faillock` would automatically lock accounts after repeated invalid password attempts, risking lockout Denial-of-Service (DoS) and interrupting automated operational tasks.
+  * We intentionally customized the `authselect` profile (`rhel9cis_authselect_custom_profile_name`) and disabled the faillock rules (`rhel9cis_pam_faillock_deny: 0` / rules `5.3.3.1.1`–`5.3.3.1.3`).
+* **Live Simulation / Verification Commands:**
+  ```bash
+  # Check active authselect profile (shows faillock is not enforced)
+  authselect current
+
+  # Confirm pam_faillock is absent from active PAM stack
+  grep -i "pam_faillock" /etc/pam.d/system-auth /etc/pam.d/password-auth || echo "Verified: Faillock disabled per Pair A requirements."
+  ```
+
+---
+
+#### Failure 2: CIS 6.2.3.6 – Ensure rsyslog is configured to send logs to a remote log host
+* **Rule Title:** `6.2.3.6 | Ensure rsyslog is configured to send logs to a remote log host`
+* **Goss Resource Tested:** `Command: remote_syslog` (exit status expected 0 or 2)
+* **Failure Symptom:** Goss returns exit code `1` and notes missing remote target pattern: `*.* action(type="omfwd" target="logagg.example.com" port="514" protocol="tcp")`.
+* **Root Cause & Rationale:**
+  * Pair A is assigned `Use rsyslog for logging`. Rsyslog is installed, enabled, and actively writing system logs locally to `/var/log/messages`.
+  * However, CIS Rule 6.2.3.6 expects logs to be forwarded to a centralized external log aggregator (SIEM / central syslog server).
+  * In our isolated local KVM hypervisor lab, no external log aggregator server exists. Configuring a dummy remote IP would cause rsyslog connection retry spam and potential network buffer bloat.
+* **Live Simulation / Verification Commands:**
+  ```bash
+  # 1. Prove rsyslog is actively running locally
+  systemctl status rsyslog --no-pager
+
+  # 2. Write a test message and prove local ingestion works
+  logger -t PRESENTATION_TEST "Local Rsyslog verification on pa-node-1"
+  sudo tail -n 5 /var/log/messages | grep "PRESENTATION_TEST"
+
+  # 3. Check for remote forwarding rule (shows why Goss flagged it)
+  grep -E '^\*\.\*.*omfwd|action\(type="omfwd"' /etc/rsyslog.conf /etc/rsyslog.d/*.conf || echo "Verified: No remote host configured (Isolated Lab Host)."
+  ```
+
+---
+
+#### Failure 3: CIS 5.3.3.2.7 – Ensure password quality is enforced for the root user
+* **Rule Title:** `5.3.3.2.7 | Ensure password quality is enforced for the root user`
+* **Goss Resource Tested:** `Command: password_quality_enforce_root`
+* **Failure Symptom:** Goss expects pattern `/:enforce_for_root/` in `/etc/security/pwquality.conf`.
+* **Root Cause & Rationale:**
+  * Our VM deployment uses standard modern cloud infrastructure security practices: **SSH public key authentication only**.
+  * The `root` account has no password assigned (it is locked with `!` in `/etc/shadow`), and SSH direct root login is strictly disabled (`PermitRootLogin no`).
+  * Administrative access is granted only to the `sysadmin` user via public key authentication with sudo privileges. Enforcing interactive password complexity (`enforce_for_root`) on an account that does not accept password logins is functionally redundant.
+* **Live Simulation / Verification Commands:**
+  ```bash
+  # 1. Verify root account password is locked (shows 'LK' or 'NP')
+  sudo passwd -S root
+
+  # 2. Verify direct root login via SSH is disabled
+  sudo sshd -T | grep -i permitrootlogin
+
+  # 3. Inspect pwquality.conf for enforce_for_root (shows why Goss flagged it)
+  grep -E '^enforce_for_root' /etc/security/pwquality.conf || echo "Verified: enforce_for_root not active because root password authentication is disabled."
+  ```
+
+---
+
 
 ## 10. Manual Execution Quick Reference
 
